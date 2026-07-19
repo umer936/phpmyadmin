@@ -1,0 +1,87 @@
+services:
+  phpmyadmin-dev:
+    build:
+      context: .
+      dockerfile: docker/phpmyadmin/Dockerfile
+    container_name: phpmyadmin-dev
+    depends_on:
+      mysql80:
+        condition: service_healthy
+      mysql84:
+        condition: service_healthy
+      mariadb114:
+        condition: service_healthy
+    environment:
+      PMA_BUILD_ASSETS: "1"
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - pma_vendor:/var/www/html/vendor
+      - pma_node_modules:/var/www/html/node_modules
+    restart: unless-stopped
+
+  mysql80:
+    image: mysql:8.0
+    container_name: pma-mysql80
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: playground
+      MYSQL_USER: pma
+      MYSQL_PASSWORD: pma
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    ports:
+      - "33061:3306"
+    volumes:
+      - mysql80_data:/var/lib/mysql
+
+  mysql84:
+    image: mysql:8.4
+    container_name: pma-mysql84
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: playground
+      MYSQL_USER: pma
+      MYSQL_PASSWORD: pma
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    ports:
+      - "33062:3306"
+    volumes:
+      - mysql84_data:/var/lib/mysql
+
+  mariadb114:
+    image: mariadb:11.4
+    container_name: pma-mariadb114
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: playground
+      MARIADB_USER: pma
+      MARIADB_PASSWORD: pma
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    ports:
+      - "33063:3306"
+    volumes:
+      - mariadb114_data:/var/lib/mysql
+
+volumes:
+  pma_vendor:
+  pma_node_modules:
+  mysql80_data:
+  mysql84_data:
+  mariadb114_data:
